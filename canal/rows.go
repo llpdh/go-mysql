@@ -22,14 +22,20 @@ type RowsEvent struct {
 	// Two rows for one event, format is [before update row, after update row]
 	// for update v0, only one row for a event, and we don't support this version.
 	Rows [][]interface{}
+
+	// If the table engine type is BLACKHOLE we can get the log position
+	// since the engine is transaction aware.
+	// https://dev.mysql.com/doc/refman/5.7/en/blackhole-storage-engine.html
+	LogPos uint32
 }
 
-func newRowsEvent(table *schema.Table, action string, rows [][]interface{}) *RowsEvent {
+func newRowsEvent(table *schema.Table, action string, rows [][]interface{}, logPos uint32) *RowsEvent {
 	e := new(RowsEvent)
 
 	e.Table = table
 	e.Action = action
 	e.Rows = rows
+	e.LogPos = logPos
 
 	return e
 }

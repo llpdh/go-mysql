@@ -55,6 +55,8 @@ type Table struct {
 	Columns   []TableColumn
 	Indexes   []*Index
 	PKColumns []int
+
+	Engine string
 }
 
 func (ta *Table) String() string {
@@ -190,6 +192,7 @@ func NewTable(conn mysql.Executer, schema string, name string) (*Table, error) {
 		Name:    name,
 		Columns: make([]TableColumn, 0, 16),
 		Indexes: make([]*Index, 0, 8),
+		Engine:  "",
 	}
 
 	if err := ta.fetchColumns(conn); err != nil {
@@ -200,7 +203,29 @@ func NewTable(conn mysql.Executer, schema string, name string) (*Table, error) {
 		return nil, errors.Trace(err)
 	}
 
+	if err := ta.fetchEngine(conn); err != nil {
+		return nil, errors.Trace(err)
+	}
+
 	return ta, nil
+}
+
+func (ta *Table) fetchEngine(conn mysql.Executer) error {
+	r, err := conn.Execute(
+		fmt.Sprintf(
+			"SELECT engine FROM information_schema.TABLES where TABLE_SCHEMA = '%s' and TABLE_NAME = '%s'",
+			ta.Schema,
+			ta.Name,
+		),
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	// Only one row and one column
+	engine, _ := r.GetString(0, 0)
+	ta.Engine = engine
+
+	return nil
 }
 
 func (ta *Table) fetchColumns(conn mysql.Executer) error {

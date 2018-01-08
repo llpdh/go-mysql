@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	expAlterTable  = regexp.MustCompile("(?i)^ALTER\\sTABLE\\s.*?`{0,1}(.*?)`{0,1}\\.{0,1}`{0,1}([^`\\.]+?)`{0,1}\\s.*")
+	expAlterTable = regexp.MustCompile("(?i)^ALTER\\sTABLE\\s.*?`{0,1}(.*?)`{0,1}\\.{0,1}`{0,1}([^`\\.]+?)`{0,1}\\s.*")
 	//rename should clear old table cache
 	expRenameTable = regexp.MustCompile("(?i)^RENAME\\sTABLE\\s.*?`{0,1}(.*?)`{0,1}\\.{0,1}`{0,1}([^`\\.]+?)`{0,1}\\s{1,}TO\\s.*?")
 	expDropTable   = regexp.MustCompile("(?i)^DROP\\sTABLE\\s.*?`{0,1}(.*?)`{0,1}\\.{0,1}`{0,1}([^`\\.]+?)`{0,1}($|\\s)")
@@ -117,7 +117,7 @@ func (c *Canal) runSyncBinlog() error {
 			trigger := false
 			var (
 				schema []byte
-				table []byte
+				table  []byte
 			)
 			if mb := checkRenameTable(e); mb != nil {
 				if len(mb[1]) == 0 {
@@ -179,8 +179,15 @@ func (c *Canal) handleRowsEvent(e *replication.BinlogEvent) error {
 	default:
 		return errors.Errorf("%s not supported now", e.Header.EventType)
 	}
-	events := newRowsEvent(t, action, ev.Rows)
-	return c.eventHandler.OnRow(events)
+
+	var event *RowsEvent
+	if t.Engine == "BLACKHOLE" {
+		event = newRowsEvent(t, action, ev.Rows, e.Header.LogPos)
+	} else {
+		event = newRowsEvent(t, action, ev.Rows, 0)
+	}
+
+	return c.eventHandler.OnRow(event)
 }
 
 func (c *Canal) WaitUntilPos(pos mysql.Position, timeout time.Duration) error {
@@ -234,7 +241,7 @@ func checkRenameTable(e *replication.QueryEvent) [][]byte {
 	return mb
 }
 
-func checkDropTable(e *replication.QueryEvent) [][]byte  {
+func checkDropTable(e *replication.QueryEvent) [][]byte {
 	mb := expDropTable.FindSubmatch(e.Query)
 	return mb
 }
