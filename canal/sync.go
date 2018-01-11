@@ -114,7 +114,10 @@ func (c *Canal) runSyncBinlog() error {
 				return errors.Trace(err)
 			}
 		case *replication.QueryEvent:
-			trigger := false
+			if err = c.eventHandler.OnDDL(pos, e); err != nil {
+				return errors.Trace(err)
+			}
+			/*trigger := false
 			var (
 				schema []byte
 				table  []byte
@@ -142,7 +145,7 @@ func (c *Canal) runSyncBinlog() error {
 			log.Infof("table structure changed, clear table cache: %s.%s\n", schema, table)
 			if err = c.eventHandler.OnDDL(pos, e); err != nil {
 				return errors.Trace(err)
-			}
+			}*/
 
 		default:
 			continue
