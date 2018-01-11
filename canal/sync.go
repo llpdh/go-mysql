@@ -114,10 +114,7 @@ func (c *Canal) runSyncBinlog() error {
 				return errors.Trace(err)
 			}
 		case *replication.QueryEvent:
-			if err = c.eventHandler.OnDDL(pos, e); err != nil {
-				return errors.Trace(err)
-			}
-			/*trigger := false
+			trigger := false
 			var (
 				schema []byte
 				table  []byte
@@ -129,11 +126,11 @@ func (c *Canal) runSyncBinlog() error {
 				schema = mb[1]
 				table = mb[2]
 				trigger = true
-			} else if mb = checkDropTable(e); mb != nil {
+			} /*else if mb = checkDropTable(e); mb != nil {
 				schema = e.Schema
 				table = mb[2]
 				trigger = true
-			}
+			}*/
 
 			if !trigger {
 				continue
@@ -145,7 +142,7 @@ func (c *Canal) runSyncBinlog() error {
 			log.Infof("table structure changed, clear table cache: %s.%s\n", schema, table)
 			if err = c.eventHandler.OnDDL(pos, e); err != nil {
 				return errors.Trace(err)
-			}*/
+			}
 
 		default:
 			continue
